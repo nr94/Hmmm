@@ -147,5 +147,6 @@ int main(){
         cout << endl;
         cout << "Result of Equation: " << numStack.pop() << endl;
     }
+    file.close()
     return 0;
 }
