@@ -10,7 +10,7 @@ class node{
         node *link;
         Type data;
     public:
-        node(node *lnk = NULL, Type dat = NULL): link{lnk}, data(dat){};
+        node(node *lnk = NULL, Type dat = NULL): link(lnk), data(dat){};
         ~node(){}
         Type getData(){return data;}
         node *getLink(){return link;}
@@ -38,7 +38,7 @@ class Stack{
             }
             return 0;
         }
-        char peek(){return TOS->data;}
+        Type peek(){return TOS->data;}
         int getSize(){return size;}
 };
 
@@ -84,69 +84,102 @@ int precedence(char op){
         return 2;
 }
 int main(){
-    Stack<char> opStack;
-    Queue postFixQ;
-    string equation;
     ifstream file ;
     file.open("input.txt");
     while(!file.eof()){
+        Stack<char> opStack;
+        Queue postFixQ;
+        string equation;
         getline (file,equation);
+        int leftparen = 0, rightparen = 0;
+        int leftbracket = 0, rightbracket = 0;
+        bool mismatchFlag = 1;
         for(int i = 0; i < equation.size(); i++){
-            if (equation[i] > '0' && equation[i] <= '9'){
-                postFixQ.enQueue(equation[i]);
-            }
-            else if (equation[i] == '(' || equation[i] == '['){
-                opStack.push(equation[i]);
-            }
-            else if(equation[i] == ')'){
-                char c = opStack.pop();
-                while(c!= '('){
-                    postFixQ.enQueue(c);
-                    c = opStack.pop();
+            if(equation[i] == '(')
+               leftparen++;
+            else if(equation[i] == ')')
+               rightparen++;
+            else if(equation[i] == '[')
+                leftbracket++;
+            else if(equation[i] == ']')
+               rightbracket++;
+        }
+        if(leftparen == rightparen && leftbracket == rightbracket){
+            mismatchFlag = 0;
+            cout << equation << endl;
+            for(int i = 0; i < equation.size(); i++){
+                cout << i << ":" << opStack.getSize() << endl;
+                if (equation[i] > '0' && equation[i] <= '9'){
+                    postFixQ.enQueue(equation[i]);
                 }
-            }
-            else if(equation[i] == ']'){
-                char c = opStack.pop();
-                while(c!= '['){
-                    postFixQ.enQueue(c);
-                    c = opStack.pop();
+                else if (equation[i] == '(' || equation[i] == '['){
+                    opStack.push(equation[i]);
                 }
-            }
-            else if(equation[i] == '~'){
-                for(int i = 0; i < opStack.getSize(); i++){
+                else if(equation[i] == ')'){
                     char c = opStack.pop();
-                    postFixQ.enQueue(c);
+                    while(c!= '('){
+                        if(c == '[')
+                          mismatchFlag = 1;
+                        postFixQ.enQueue(c);
+                        c = opStack.pop();
+                    }
+                }
+                else if(equation[i] == ']'){
+                    char c = opStack.pop();
+                    while(c!= '['){
+                        if(c == '(')
+                          mismatchFlag = 1;
+                        postFixQ.enQueue(c);
+                        c = opStack.pop();
+                    }
+                }
+                else if(equation[i] == '~'){
+                    for(int i = 0; i <= opStack.getSize(); i++){
+                        char c = opStack.pop();
+                        postFixQ.enQueue(c);
+                    }
+                }
+                else{
+                    if (opStack.getSize() > 0){
+                        if(precedence(equation[i]) > precedence(opStack.peek()))
+                            postFixQ.enQueue(opStack.pop());
+                    }
+                    opStack.push(equation[i]);
+                }
+                if (mismatchFlag == 1){
+                    break;
                 }
             }
-            else{
-                if (opStack.getSize() > 0){
-                    if(precedence(equation[i]) > precedence(opStack.peek()))
-                        postFixQ.enQueue(opStack.pop());
+            if(mismatchFlag == 0){
+                int len = postFixQ.getSize();
+                Stack<int> numStack;
+                for(int i = 0; i < len; i++){
+                    char c = postFixQ.deQueue();
+                    cout << c;
+                    if(c > '0' && c <='9')
+                        numStack.push(int(c)-48);
+                    else{
+                        int num1 = numStack.pop();
+                        int num2 = numStack.pop();
+                        if(c == '+')
+                            numStack.push(num2 + num1);
+                        else if(c == '-')
+                            numStack.push(num2 - num1);
+                        else if(c == '*')
+                            numStack.push(num2 * num1);
+                        else
+                            numStack.push(num2 / num1);
+                    }
                 }
-                opStack.push(equation[i]);
+                cout << endl;
+                cout << "Result of Equation: " << numStack.pop() << endl;
+                cout << numStack.getSize() << endl;
             }
+            cout << opStack.getSize() << endl;
         }
-        int len = postFixQ.getSize();
-        Stack<int> numStack;
-        for(int i = 0; i < len; i++){
-            char c = postFixQ.deQueue();
-            cout << c;
-            if(c > '0' && c <='9')
-                numStack.push(int(c)-48);
-            else{
-                if(c == '+')
-                    numStack.push(numStack.pop() + numStack.pop());
-                else if(c == '-')
-                    numStack.push(numStack.pop() - numStack.pop());
-                else if(c == '*')
-                    numStack.push(numStack.pop() * numStack.pop());
-                else
-                    numStack.push(numStack.pop() / numStack.pop());
-            }
-        }
-        cout << endl;
-        cout << "Result of Equation: " << numStack.pop() << endl;
+        else if(mismatchFlag == 1)
+            cout << "Parentheses or bracket mismatch" << endl;
     }
-    file.close()
+    file.close();
     return 0;
 }
